@@ -24,9 +24,7 @@ async def my_favorites(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not favorites:
         await query.edit_message_text(
-            "❤️ قائمة المفضلة فارغة.
-"
-            "أضف كتباً من المكتبة!",
+            "❤️ قائمة المفضلة فارغة.\nأضف كتباً من المكتبة!",
             reply_markup=InlineKeyboards.main_menu()
         )
         return
@@ -61,13 +59,11 @@ async def my_downloads(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    text = "📜 <b>سجل التحميلات</b>
-
-"
+    text = "📜 <b>سجل التحميلات</b>\n\n"
     for i, dl in enumerate(downloads[:20], 1):
         book_title = dl.book.title if dl.book else "غير معروف"
         date = dl.downloaded_at.strftime("%Y-%m-%d") if dl.downloaded_at else "غير معروف"
-        text += f"{i}. 📖 {book_title} - {date}
-"
+        text += f"{i}. 📖 {book_title} - {date}\n"
 
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboards.main_menu())
+    
