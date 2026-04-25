@@ -34,9 +34,9 @@ async def admin_books(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await query.edit_message_text(
-        "📚 <b>إدارة الكتب</b>
+        """📚 <b>إدارة الكتب</b>
 
-اختر الإجراء:",
+اختر الإجراء:""",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -48,12 +48,10 @@ async def add_book_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     await query.edit_message_text(
-        "📖 <b>إضافة كتاب جديد</b>
+        """📖 <b>إضافة كتاب جديد</b>
 
-"
-        "أرسل عنوان الكتاب:
-"
-        "أو اضغط /cancel للإلغاء."
+أرسل عنوان الكتاب:
+أو اضغط /cancel للإلغاء."""
     )
     return BOOK_TITLE
 
@@ -63,9 +61,8 @@ async def add_book_title(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["new_book_title"] = update.message.text
 
     await update.message.reply_text(
-        "✍️ أرسل اسم المؤلف:
-"
-        "أو اضغط /skip لتخطي."
+        """✍️ أرسل اسم المؤلف:
+أو اضغط /skip لتخطي."""
     )
     return BOOK_AUTHOR
 
@@ -106,9 +103,8 @@ async def add_book_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["new_book_category_id"] = category_id
 
     await query.edit_message_text(
-        "📝 أرسل وصف الكتاب (اختياري):
-"
-        "أو اضغط /skip."
+        """📝 أرسل وصف الكتاب (اختياري):
+أو اضغط /skip."""
     )
     return BOOK_DESCRIPTION
 
@@ -135,18 +131,16 @@ async def add_book_description(update: Update, context: ContextTypes.DEFAULT_TYP
     if ai_desc:
         context.user_data["new_book_ai_description"] = ai_desc
         await update.message.reply_text(
-            f"🤖 <b>وصف مقترح:</b>
+            f"""🤖 <b>وصف مقترح:</b>
 {ai_desc}
 
-"
-            f"هل تريد استخدامه؟ (نعم/لا)",
+هل تريد استخدامه؟ (نعم/لا)""",
             parse_mode="HTML"
         )
     else:
         await update.message.reply_text(
-            "📎 أرسل ملف PDF أو رابط الكتاب:
-"
-            "أو اضغط /skip."
+            """📎 أرسل ملف PDF أو رابط الكتاب:
+أو اضغط /skip."""
         )
 
     return BOOK_FILE
@@ -186,9 +180,8 @@ async def add_book_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.commit()
 
     await update.message.reply_text(
-        f"✅ تم إضافة الكتاب '{title}' بنجاح!
-"
-        f"🆔 ID: {book.id}"
+        f"""✅ تم إضافة الكتاب '{title}' بنجاح!
+🆔 ID: {book.id}"""
     )
 
     # تنظيف
@@ -214,18 +207,13 @@ async def list_all_books(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text("📚 لا توجد كتب.")
         return
 
-    text = "📚 <b>جميع الكتب</b>
-
-"
+    text = "📚 <b>جميع الكتب</b>\n\n"
     for book in books:
         author = book.author.name if book.author else "غير معروف"
         category = book.category.name if book.category else "غير مصنف"
         status = "✅" if book.is_active else "❌"
-        text += f"{status} 🆔{book.id} | {book.title}
-"
-        text += f"   ✍️ {author} | 📁 {category} | 📥 {book.download_count}
-
-"
+        text += f"{status} 🆔{book.id} | {book.title}\n"
+        text += f"   ✍️ {author} | 📁 {category} | 📥 {book.download_count}\n\n"
 
     keyboard = [
         [InlineKeyboardButton("🔍 بحث متقدم", callback_data="admin_advanced_search")],
@@ -253,9 +241,9 @@ async def advanced_search_books(update: Update, context: ContextTypes.DEFAULT_TY
     ]
 
     await query.edit_message_text(
-        "🔍 <b>البحث المتقدم</b>
+        """🔍 <b>البحث المتقدم</b>
 
-اختر الفلتر:",
+اختر الفلتر:""",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
@@ -303,9 +291,7 @@ async def ai_recategorize(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db.commit()
 
-    text = "🤖 <b>نتائج إعادة التصنيف</b>
-
-"
+    text = "🤖 <b>نتائج إعادة التصنيف</b>\n\n"
     text += "\n".join(results[:20])
 
     await context.bot.send_message(
