@@ -1,7 +1,7 @@
 """معالج التعليقات"""
 import logging
 from telegram import Update
-from telegram.ext import ContextTypes, ConversationTypes
+from telegram.ext import ContextTypes, ConversationHandler
 from sqlalchemy.orm import Session
 from bot.database.models import Book, Comment, CommentLike
 from bot.keyboards import InlineKeyboards
