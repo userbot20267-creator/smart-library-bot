@@ -3,7 +3,7 @@ import logging
 import csv
 import io
 from telegram import Update
-from telegram.ext import ContextTypes, ConversationTypes
+from telegram.ext import ContextTypes, ConversationHandler
 from sqlalchemy.orm import Session
 from bot.database.models import User, Category, Author, Book, RequiredChannel
 from bot.middlewares import AuthMiddleware
@@ -35,11 +35,11 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🚷 ليس لديك صلاحية الوصول.")
         return
 
+    # الإصلاح هنا: استخدام علامات التنصيص الثلاثية للنصوص متعددة الأسطر
     await update.message.reply_text(
-        "👑 <b>لوحة التحكم</b>
+        """👑 <b>لوحة التحكم</b>
 
-"
-        "اختر القسم:",
+اختر القسم:""",
         parse_mode="HTML",
         reply_markup=InlineKeyboards.admin_menu()
     )
@@ -59,7 +59,7 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_categories = db.query(Category).count()
     total_authors = db.query(Author).count()
     total_downloads = db.query(Book).with_entities(Book.download_count).all()
-    total_downloads_sum = sum(d[0] for d in total_downloads)
+    total_downloads_sum = sum(d[0] for d in total_downloads if d[0])
 
     # أكثر الكتب تحميلاً
     top_books = db.query(Book).order_by(Book.download_count.desc()).limit(5).all()
@@ -76,8 +76,7 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 🏆 <b>أكثر الكتب تحميلاً:</b>
 """
     for i, book in enumerate(top_books, 1):
-        stats_text += f"{i}. {book.title} ({book.download_count} تحميل)
-"
+        stats_text += f"{i}. {book.title} ({book.download_count} تحميل)\n"
 
     await query.edit_message_text(stats_text, parse_mode="HTML", reply_markup=InlineKeyboards.admin_menu())
 
@@ -93,13 +92,10 @@ async def admin_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     users = db.query(User).limit(20).all()
 
-    text = "👥 <b>المستخدمين</b>
-
-"
+    text = "👥 <b>المستخدمين</b>\n\n"
     for user in users:
         status = "🚷" if user.is_banned else "✅"
-        text += f"{status} {user.first_name or 'مستخدم'} - ID: {user.telegram_id} - نقاط: {user.total_points}
-"
+        text += f"{status} {user.first_name or 'مستخدم'} - ID: {user.telegram_id} - نقاط: {user.total_points}\n"
 
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboards.admin_menu())
 
@@ -110,9 +106,7 @@ async def broadcast_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
 
     await query.edit_message_text(
-        "📢 أرسل الرسالة التي تريد إذاعتها لجميع المستخدمين:
-
-"
+        "📢 أرسل الرسالة التي تريد إذاعتها لجميع المستخدمين:\n\n"
         "أو اضغط /cancel للإلغاء."
     )
     return BROADCAST_MESSAGE
@@ -141,10 +135,8 @@ async def broadcast_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
             failed += 1
 
     await update.message.reply_text(
-        f"✅ تم الإرسال!
-"
-        f"📤 نجح: {sent}
-"
+        f"✅ تم الإرسال!\n"
+        f"📤 نجح: {sent}\n"
         f"❌ فشل: {failed}"
     )
 
@@ -185,3 +177,4 @@ async def export_users(update: Update, context: ContextTypes.DEFAULT_TYPE):
         filename="users_export.csv",
         caption="📊 تصدير بيانات المستخدمين"
     )
+    
