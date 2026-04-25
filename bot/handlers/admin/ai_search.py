@@ -213,7 +213,6 @@ async def confirm_ai_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # تنظيف
     context.user_data.pop("ai_search_results", None)
     context.user_data.pop("ai_search_category", None)
-'''
 
 with open(f"{base_dir}/bot/handlers/admin/ai_search.py", "w", encoding="utf-8") as f:
     f.write(ai_search)
