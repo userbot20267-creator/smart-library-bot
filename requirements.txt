@@ -1,3 +1,8 @@
+# --- تثبيت نسخة المعالجة المركزية لتقليل الحجم ---
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.11.0
+torchvision==0.26.0
+
 # Core
 python-telegram-bot==21.4
 python-dotenv==1.0.1
@@ -19,7 +24,7 @@ pdfplumber==0.11.2
 # Embeddings & Search
 numpy==2.0.1
 scikit-learn==1.5.1
-sentence-transformers==2.2.2  # <-- تم تغيير هذا السطر
+sentence-transformers==2.2.2
 
 # Web Scraping & APIs
 beautifulsoup4==4.12.3
