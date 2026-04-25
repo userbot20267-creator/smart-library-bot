@@ -49,9 +49,7 @@ async def add_comment_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["commenting_book"] = book_id
 
     await query.edit_message_text(
-        "💬 أرسل تعليقك (حتى 200 حرف):
-
-"
+        "💬 أرسل تعليقك (حتى 200 حرف):\n\n"
         "أو اضغط /cancel للإلغاء."
     )
     return COMMENT_TEXT
@@ -135,3 +133,4 @@ async def like_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💬 التعليقات:",
         reply_markup=InlineKeyboards.comments_list(comments, comment.book_id)
     )
+    
