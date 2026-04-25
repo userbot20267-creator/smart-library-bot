@@ -73,15 +73,13 @@ async def smart_search_callback(update: Update, context: ContextTypes.DEFAULT_TY
     await query.answer()
 
     await query.edit_message_text(
-        "🔍 <b>البحث الذكي</b>
+        """🔍 <b>البحث الذكي</b>
 
-"
-        "يمكنك البحث عن كتاب بالاسم، المؤلف، أو وصف عام.
-"
-        "مثال: 'روايات بوليسية' أو 'كتب عن التطوير الذاتي'
+يمكنك البحث عن كتاب بالاسم، المؤلف، أو وصف عام.
+مثال: 'روايات بوليسية' أو 'كتب عن التطوير الذاتي'
 
-"
-        "أرسل استعلامك الآن:",
+أرسل استعلامك الآن:""",
         parse_mode="HTML"
     )
     context.user_data["awaiting_smart_search"] = True
+    
