@@ -1,9 +1,9 @@
 """الرفع الدفعي المباشر للكتب"""
 import logging
-from telegram import Update
-from telegram.ext import ContextTypes, ConversationTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, ConversationHandler
 from sqlalchemy.orm import Session
-from bot.database.models import Book, Category, Author
+from bot.database.models import Book, Category, Author, User
 from bot.services import get_ai_service
 from bot.keyboards import InlineKeyboards
 
@@ -32,15 +32,12 @@ async def batch_upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     await update.message.reply_text(
-        "📦 <b>الرفع الدفعي</b>
+        """📦 <b>الرفع الدفعي</b>
 
-"
-        "أرسل جميع ملفات PDF التي تريد رفعها في رسالة واحدة أو متعددة.
-"
-        "ثم اضغط /done عند الانتهاء.
+أرسل جميع ملفات PDF التي تريد رفعها في رسالة واحدة أو متعددة.
+ثم اضغط /done عند الانتهاء.
 
-"
-        "أو اضغط /cancel للإلغاء.",
+أو اضغط /cancel للإلغاء.""",
         parse_mode="HTML"
     )
 
@@ -84,10 +81,9 @@ async def batch_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([InlineKeyboardButton("🆕 قسم جديد", callback_data="batch_new_cat")])
 
     await update.message.reply_text(
-        f"📦 تم استلام {len(files)} ملفات.
+        f"""📦 تم استلام {len(files)} ملفات.
 
-"
-        f"اختر القسم لهذه الكتب:",
+اختر القسم لهذه الكتب:""",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -106,7 +102,6 @@ async def batch_select_category(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data["batch_category_id"] = category_id
     elif query.data == "batch_new_cat":
         await query.edit_message_text("أرسل اسم القسم الجديد:")
-        # يمكن إضافة معالج هنا
         return
 
     # عرض المؤلفين
@@ -187,7 +182,6 @@ async def batch_confirm_upload(update: Update, context: ContextTypes.DEFAULT_TYP
 
     for file_info in files:
         try:
-            # توليد وصف AI
             ai_desc = await ai_service.generate_book_description(
                 title=file_info["title"],
                 author="",
@@ -215,11 +209,10 @@ async def batch_confirm_upload(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await context.bot.send_message(
         update.effective_user.id,
-        f"✅ تم الانتهاء!
-"
-        f"📚 نجح: {added}
-"
-        f"❌ فشل: {failed}"
+        f"""✅ تم الانتهاء!
+📚 نجح: {added}
+❌ فشل: {failed}""",
+        parse_mode="HTML"
     )
 
     # تنظيف
