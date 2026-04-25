@@ -3,7 +3,7 @@ ai_search = """البحث الذكي وإضافة تلقائية للمالك"""
 import logging
 import re
 from telegram import Update
-from telegram.ext import ContextTypes, ConversationTypes
+from telegram.ext import ContextTypes, ConversationHandler
 from sqlalchemy.orm import Session
 from bot.database.models import Book, Category, Author
 from bot.services import get_ai_service
