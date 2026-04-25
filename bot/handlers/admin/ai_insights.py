@@ -1,12 +1,12 @@
 """تحليل المكتبة بالذكاء الاصطناعي"""
 import logging
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from bot.database.models import Book, Category, User, Download
 from bot.services import get_ai_service
 from bot.keyboards import InlineKeyboards
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ async def ai_insights_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await update.message.reply_text("🤖 جاري تحليل المكتبة... قد يستغرق هذا بضع دقائق.")
 
-    # جمع البيانات
+    # جمع البيانات بكفاءة أعلى
     total_books = db.query(Book).count()
     total_categories = db.query(Category).count()
     total_users = db.query(User).count()
@@ -38,11 +38,9 @@ async def ai_insights_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     # أكثر الكتب تحميلاً
     top_books = db.query(Book).order_by(Book.download_count.desc()).limit(10).all()
 
-    # الأقسام الأكثر زيارة
-    category_stats = {}
-    for book in db.query(Book).all():
-        cat_name = book.category.name if book.category else "غير مصنف"
-        category_stats[cat_name] = category_stats.get(cat_name, 0) + book.download_count
+    # إحصائيات الأقسام (تم تحسينها لتتم داخل قاعدة البيانات)
+    cat_results = db.query(Category.name, func.sum(Book.download_count)).join(Book).group_by(Category.name).all()
+    category_stats = {name: int(count) for name, count in cat_results}
 
     # كتب بدون وصف
     books_no_desc = db.query(Book).filter(
@@ -68,6 +66,7 @@ async def ai_insights_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     analysis = await ai_service.analyze_library([books_data])
 
     if analysis:
+        # تصحيح علامات التنصيص هنا باستخدام الثلاثية
         text = f"""
 🤖 <b>تحليل المكتبة بالذكاء الاصطناعي</b>
 
@@ -117,14 +116,13 @@ async def generate_description_for_existing(update: Update, context: ContextType
         book.ai_description = description
         db.commit()
 
+        # تصحيح علامات التنصيص هنا
         await query.edit_message_text(
-            f"🤖 <b>وصف مقترح لـ '{book.title}':</b>
+            f"""🤖 <b>وصف مقترح لـ '{book.title}':</b>
 
-"
-            f"{description}
+{description}
 
-"
-            f"هل تريد حفظه؟",
+هل تريد حفظه؟""",
             parse_mode="HTML",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("✅ حفظ", callback_data=f"save_desc_{book_id}")],
