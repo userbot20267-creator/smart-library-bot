@@ -41,8 +41,8 @@ async def weekly_report(context: ContextTypes.DEFAULT_TYPE):
 🏆 <b>أكثر الكتب تحميلاً:</b>
 """
         for i, book in enumerate(top_books, 1):
-            report += f"{i}. {book.title} ({book.download_count})
-"
+            # تم تصحيح السطر أدناه بإضافة علامة التنصيص وإضافة \n للسطر الجديد
+            report += f"\n{i}. {book.title} ({book.download_count})"
 
         # إرسال للمالك
         await context.bot.send_message(
@@ -54,3 +54,4 @@ async def weekly_report(context: ContextTypes.DEFAULT_TYPE):
         logger.info("Weekly report sent")
     except Exception as e:
         logger.error(f"Weekly report error: {e}")
+        
