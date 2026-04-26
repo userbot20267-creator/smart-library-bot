@@ -1,7 +1,7 @@
 """نظام الإشعارات المخصصة"""
 import logging
 import json
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session
 from bot.database.models import User, Book, Author, Category, Notification
@@ -38,16 +38,12 @@ async def notification_settings(update: Update, context: ContextTypes.DEFAULT_TY
         [InlineKeyboardButton("🔙 رجوع", callback_data="main_menu")]
     ]
 
+    # تصحيح: دمج النص واستخدام \n للأسطر الجديدة
     await query.edit_message_text(
-        "🔔 <b>إعدادات الإشعارات</b>
-
-"
-        "اختر ما تريد:
-"
-        "• استلام إشعارات عند إضافة كتب جديدة
-"
-        "• متابعة مؤلفين محددين
-"
+        "🔔 <b>إعدادات الإشعارات</b>\n\n"
+        "اختر ما تريد:\n"
+        "• استلام إشعارات عند إضافة كتب جديدة\n"
+        "• متابعة مؤلفين محددين\n"
         "• متابعة أقسام محددة",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -107,10 +103,9 @@ async def manage_preferred_categories(update: Update, context: ContextTypes.DEFA
 
     keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="notification_settings")])
 
+    # تصحيح: دمج النص واستخدام \n
     await query.edit_message_text(
-        "📁 <b>الأقسام المفضلة</b>
-
-"
+        "📁 <b>الأقسام المفضلة</b>\n\n"
         "اختر الأقسام التي تريد متابعتها:",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(keyboard)
@@ -217,10 +212,9 @@ async def manage_preferred_authors(update: Update, context: ContextTypes.DEFAULT
 
     keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="notification_settings")])
 
+    # تصحيح: دمج النص واستخدام \n
     await query.edit_message_text(
-        "✍️ <b>المؤلفين المفضلين</b>
-
-"
+        "✍️ <b>المؤلفين المفضلين</b>\n\n"
         "اختر المؤلفين الذين تريد متابعتهم:",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(keyboard)
