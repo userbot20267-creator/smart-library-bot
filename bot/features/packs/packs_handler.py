@@ -27,10 +27,9 @@ async def browse_packs(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # تصحيح: دمج النصوص وإضافة رمز السطر الجديد \n
     await query.edit_message_text(
-        "📦 <b>الباقات التعليمية</b>
-
-"
+        "📦 <b>الباقات التعليمية</b>\n\n"
         "مسارات منظمة للقراءة:",
         parse_mode="HTML",
         reply_markup=InlineKeyboards.packs_list(packs)
@@ -64,11 +63,10 @@ async def show_pack(update: Update, context: ContextTypes.DEFAULT_TYPE):
 """
     for item in items:
         status = "✅" if item.book.download_count > 0 else "⬜"
-        text += f"
-{status} {item.order}. {item.book.title}"
+        # تصحيح: إضافة \n في بداية السطر لضمان التنسيق
+        text += f"\n{status} {item.order}. {item.book.title}"
         if item.notes:
-            text += f"
-   💡 {item.notes}"
+            text += f"\n   💡 {item.notes}"
 
     await query.edit_message_text(
         text,
