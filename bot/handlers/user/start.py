@@ -38,13 +38,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             total_points=0
         )
 
-        # التحقق من الإحالة
+        # معالجة الإحالة – بدون commit الآن
+        referred = False
         if context.args and len(context.args) > 0:
             start_param = context.args[0]
             ref_type, ref_value = parse_deep_link(start_param)
 
             if ref_type == "referral":
-                # معالجة الإحالة
                 referrer_id = ref_value.split("_")[1] if "_" in ref_value else None
                 if referrer_id and int(referrer_id) != user.id:
                     referrer = db.query(User).filter(User.telegram_id == int(referrer_id)).first()
@@ -52,17 +52,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                         db_user.referred_by = referrer.telegram_id
                         referrer.total_points += 50
                         db_user.total_points += 10
-                        db.add(db_user)
-                        db.commit()
-
-                        # إشعار المُحيل
-                        try:
-                            await context.bot.send_message(
-                                referrer.telegram_id,
-                                f"🎉 انضم مستخدم جديد عبر رابطك! حصلت على 50 نقطة."
-                            )
-                        except Exception:
-                            pass
+                        referred = True
 
             elif ref_type == "book":
                 # فتح كتاب محدد
@@ -70,8 +60,25 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await show_book_details(update, context, ref_value)
                 return
 
+        # حفظ المستخدم (والمُحيل تعدل ضمنياً) في معاملة واحدة
         db.add(db_user)
-        db.commit()
+        try:
+            db.commit()
+        except Exception as e:
+            db.rollback()
+            logger.error(f"فشل حفظ المستخدم: {e}")
+            await update.message.reply_text("❌ حدث خطأ أثناء إنشاء حسابك. حاول مرة أخرى لاحقًا.")
+            return
+
+        # إشعار المُحيل بعد نجاح الحفظ
+        if referred:
+            try:
+                await context.bot.send_message(
+                    referrer.telegram_id,
+                    f"🎉 انضم مستخدم جديد عبر رابطك! حصلت على 50 نقطة."
+                )
+            except Exception:
+                pass
 
         welcome_text = f"""
 🎉 أهلاً بك {user.first_name or 'صديقي'} في بوت مكتبة الكتب الذكية!
