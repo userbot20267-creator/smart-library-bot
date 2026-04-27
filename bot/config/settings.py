@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # AI
     OPENROUTER_API_KEY: str = ""
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
-    AI_MODEL: str = "google/gemini-2.5-flash-preview"
+    AI_MODEL: str = "google/gemini-1.5-flash"
     GEMINI_API_KEY: str = ""
 
     # Embeddings
