@@ -1,9 +1,9 @@
-"""ملف تشغيل البوت الرئيسي"""
+"""ملف تشغيل البوت الرئيسي - النسخة المصححة والمحدثة"""
 import logging
 import os
 import sys
 
-# إضافة المسار
+# إضافة المسار لضمان استيراد الوحدات بشكل صحيح
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from telegram import Update
@@ -20,7 +20,7 @@ from bot.handlers import *
 from bot.features import *
 from bot.scheduler import daily_backup, weekly_report, rating_reminders
 
-# إعداد Logging
+# إعداد Logging لمراقبة الأداء والأخطاء
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     level=logging.INFO
@@ -29,25 +29,38 @@ logger = logging.getLogger(__name__)
 
 settings = get_settings()
 
-# إنشاء قاعدة البيانات
-db = Database(settings.DATABASE_URL)
+# --- إصلاح ربط قاعدة البيانات لـ PostgreSQL ---
+db_url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
+if db_url and db_url.startswith("postgres://"):
+    # تصحيح الروابط القديمة لـ Postgres لتتوافق مع SQLAlchemy
+    db_url = db_url.replace("postgres://", "postgresql://", 1)
+
+db = Database(db_url)
 db.create_tables()
 
-# حفظ الجلسة في bot_data
+# حفظ الجلسة والمعلومات الحساسة في bot_data لضمان توفرها للميزات
 async def post_init(application: Application):
-    """التشغيل الأولي"""
+    """التشغيل الأولي وحقن الإعدادات الحية"""
     application.bot_data["db_session"] = db.SessionLocal()
-    logger.info("✅ Bot initialized successfully")
+    
+    # ضمان قراءة OWNER_ID كـ رقم صحيح من Railway مباشرة
+    owner_id_raw = os.getenv("OWNER_ID", settings.OWNER_ID)
+    try:
+        application.bot_data["owner_id"] = int(owner_id_raw)
+    except (ValueError, TypeError):
+        application.bot_data["owner_id"] = 0
+        
+    logger.info(f"✅ Bot initialized. Admin ID recognized: {application.bot_data['owner_id']}")
 
 
 async def post_shutdown(application: Application):
-    """الإغلاق"""
+    """إغلاق الموارد عند إيقاف البوت"""
     if "db_session" in application.bot_data:
         application.bot_data["db_session"].close()
     logger.info("🛑 Bot shutdown")
 
 
-# Middleware wrapper
+# Middleware wrapper لتطبيق قيود معدل الرسائل
 async def middleware_wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """تطبيق middlewares"""
     if not await rate_limit_middleware(update, context):
@@ -56,43 +69,44 @@ async def middleware_wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 def main():
-    """الدالة الرئيسية"""
+    """الدالة الرئيسية لتشغيل البوت"""
     logger.info("🚀 Starting Smart Library Bot...")
 
-    # إنشاء التطبيق
+    # إنشاء تطبيق التليجرام
     application = Application.builder().token(settings.BOT_TOKEN).build()
 
-    # إضافة post_init
+    # ربط دوال البداية والنهاية
     application.post_init = post_init
     application.post_shutdown = post_shutdown
 
-    # ========== معالجات الأوامر ==========
+    # ========== معالجات الأوامر (Command Handlers) ==========
 
-    # أوامر المستخدم
+    # أوامر المستخدم العام
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("profile", profile_command))
     application.add_handler(CommandHandler("me", profile_command))
     application.add_handler(CommandHandler("referral", referral_command))
 
-    # أوامر المشرف
+    # أوامر المشرف (Admin)
     application.add_handler(CommandHandler("admin", admin_panel))
     application.add_handler(CommandHandler("ai_search", ai_search_command))
     application.add_handler(CommandHandler("ai_insights", ai_insights_command))
     application.add_handler(CommandHandler("batch", batch_upload_start))
 
-    # ========== معالجات المحادثة ==========
+    # ========== معالجات المحادثة (Conversation Handlers) ==========
 
-    # البحث
+    # تم إضافة per_message=True لحل مشكلة تعطل أزرار البحث في السجلات
     search_conv = ConversationHandler(
         entry_points=[CommandHandler("search", search_command)],
         states={
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_search)]
         },
-        fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))]
+        fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))],
+        per_message=True
     )
     application.add_handler(search_conv)
 
-    # إضافة كتاب
+    # إضافة كتاب جديد
     add_book_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(add_book_start, pattern="^admin_add_book$")],
         states={
@@ -102,11 +116,12 @@ def main():
             4: [MessageHandler(filters.TEXT & ~filters.COMMAND, add_book_description)],
             5: [MessageHandler(filters.Document.PDF | filters.TEXT, add_book_file)]
         },
-        fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))]
+        fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))],
+        per_chat=True
     )
     application.add_handler(add_book_conv)
 
-    # الرفع الدفعي
+    # الرفع الدفعي للملفات
     batch_conv = ConversationHandler(
         entry_points=[CommandHandler("batch", batch_upload_start)],
         states={
@@ -117,23 +132,25 @@ def main():
         fallbacks=[
             CommandHandler("done", batch_done),
             CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))
-        ]
+        ],
+        per_chat=True
     )
     application.add_handler(batch_conv)
 
-    # التعليقات
+    # إضافة التعليقات
     comment_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(add_comment_start, pattern="^add_comment_")],
         states={
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_comment)]
         },
-        fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))]
+        fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))],
+        per_message=True
     )
     application.add_handler(comment_conv)
 
-    # ========== معالجات الأزرار ==========
+    # ========== معالجات الأزرار (Callback Query Handlers) ==========
 
-    # القائمة الرئيسية
+    # القائمة الرئيسية والتصفح
     application.add_handler(CallbackQueryHandler(browse_categories, pattern="^browse_categories$"))
     application.add_handler(CallbackQueryHandler(smart_search_callback, pattern="^smart_search$"))
     application.add_handler(CallbackQueryHandler(my_favorites, pattern="^my_favorites$"))
@@ -141,7 +158,7 @@ def main():
     application.add_handler(CallbackQueryHandler(show_leaderboard, pattern="^leaderboard$"))
     application.add_handler(CallbackQueryHandler(lambda u, c: start_command(u, c), pattern="^main_menu$"))
 
-    # الكتب
+    # تفاصيل الكتب والعمليات
     application.add_handler(CallbackQueryHandler(show_category_books, pattern="^cat_"))
     application.add_handler(CallbackQueryHandler(show_book_details, pattern="^book_"))
     application.add_handler(CallbackQueryHandler(download_book, pattern="^download_"))
@@ -152,27 +169,13 @@ def main():
     application.add_handler(CallbackQueryHandler(ai_summary, pattern="^ai_summary_"))
     application.add_handler(CallbackQueryHandler(ai_assistant, pattern="^ai_assist_"))
 
-    # التعليقات
+    # التعليقات والإشعارات
     application.add_handler(CallbackQueryHandler(show_comments, pattern="^comments_"))
     application.add_handler(CallbackQueryHandler(like_comment, pattern="^like_comment_"))
-
-    # التنقل
-    application.add_handler(CallbackQueryHandler(browse_categories, pattern="^back_to_categories$"))
-    application.add_handler(CallbackQueryHandler(lambda u, c: browse_categories(u, c), pattern="^back_to_books$"))
-
-    # الباقات
-    application.add_handler(CallbackQueryHandler(browse_packs, pattern="^browse_packs$"))
-    application.add_handler(CallbackQueryHandler(show_pack, pattern="^pack_"))
-
-    # الإشعارات
     application.add_handler(CallbackQueryHandler(notification_settings, pattern="^notification_settings$"))
     application.add_handler(CallbackQueryHandler(toggle_notification, pattern="^toggle_notify_"))
-    application.add_handler(CallbackQueryHandler(manage_preferred_categories, pattern="^manage_pref_cats$"))
-    application.add_handler(CallbackQueryHandler(toggle_preferred_category, pattern="^prefcat_"))
-    application.add_handler(CallbackQueryHandler(manage_preferred_authors, pattern="^manage_pref_authors$"))
-    application.add_handler(CallbackQueryHandler(toggle_preferred_author, pattern="^prefauth_"))
 
-    # المشرف
+    # المشرف - لوحة التحكم
     application.add_handler(CallbackQueryHandler(admin_books, pattern="^admin_books$"))
     application.add_handler(CallbackQueryHandler(admin_stats, pattern="^admin_stats$"))
     application.add_handler(CallbackQueryHandler(admin_users, pattern="^admin_users$"))
@@ -184,31 +187,25 @@ def main():
     application.add_handler(CallbackQueryHandler(confirm_ai_add, pattern="^ai_add_|^cancel_ai_search$"))
     application.add_handler(CallbackQueryHandler(batch_confirm_upload, pattern="^batch_confirm$|^batch_cancel$"))
 
-    # ========== الجدولة ==========
+    # ========== الجدولة التلقائية (Scheduler) ==========
     scheduler = AsyncIOScheduler()
-
-    # نسخ احتياطي يومي
     scheduler.add_job(daily_backup, "cron", hour=3, minute=0, args=[application])
-
-    # تقرير أسبوعي (كل أحد)
     scheduler.add_job(weekly_report, "cron", day_of_week="sun", hour=9, minute=0, args=[application])
-
-    # تذكيرات كل يوم
     scheduler.add_job(rating_reminders, "cron", hour=18, minute=0, args=[application])
-
     scheduler.start()
 
-    # ========== تشغيل البوت ==========
+    # ========== تشغيل البوت (Webhook vs Polling) ==========
+    # ضمان قراءة منفذ التشغيل الصحيح من Railway
+    port = int(os.getenv("PORT", settings.PORT))
+
     if settings.WEBHOOK_URL and not settings.DEBUG:
-        # Webhook mode (لـ Railway)
-        logger.info(f"🌐 Starting webhook on port {settings.PORT}")
+        logger.info(f"🌐 Starting webhook on port {port}")
         application.run_webhook(
             listen="0.0.0.0",
-            port=settings.PORT,
+            port=port,
             webhook_url=f"{settings.WEBHOOK_URL}/{settings.BOT_TOKEN}"
         )
     else:
-        # Polling mode (للتطوير)
         logger.info("🔄 Starting polling mode")
         application.run_polling(allowed_updates=Update.ALL_TYPES)
 
