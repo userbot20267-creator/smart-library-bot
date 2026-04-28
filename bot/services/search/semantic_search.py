@@ -4,7 +4,7 @@ import numpy as np
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from bot.database.models import Book
-from bot.services.ai import get_ai_service
+from bot.services.ai_service import get_ai_service  # ✅ تم التصحيح
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ class SemanticSearchEngine:
         """حساب التشابه الكوسيني"""
         dot_product = np.dot(a, b)
         norm_a = np.linalg.norm(a)
-        norm_b = np.linalg.norm(b)
+        norm_b = np.linalg.norm(b)  # ✅ صحيح بالفعل (يحسب معيار b)
         if norm_a == 0 or norm_b == 0:
             return 0.0
         return dot_product / (norm_a * norm_b)
