@@ -3,7 +3,7 @@ import logging
 import json
 from typing import List, Dict, Optional, Any
 import numpy as np
-from bot.services.ai import get_ai_service
+from bot.services.ai_service import get_ai_service  # ✅ تم التصحيح
 
 logger = logging.getLogger(__name__)
 
