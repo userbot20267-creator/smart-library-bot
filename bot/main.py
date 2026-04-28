@@ -1,4 +1,5 @@
 """ملف تشغيل البوت الرئيسي - النسخة المصححة والمحدثة"""
+import asyncio
 import logging
 import os
 import sys
@@ -23,7 +24,8 @@ from bot.scheduler import daily_backup, weekly_report, rating_reminders
 # إعداد Logging لمراقبة الأداء والأخطاء
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    level=logging.INFO
+    level=logging.INFO,
+    stream=sys.stdout  # ✅ توجيه السجلات إلى stdout (لحل مشكلة severity: error في Railway)
 )
 logger = logging.getLogger(__name__)
 
@@ -37,6 +39,11 @@ if db_url and db_url.startswith("postgres://"):
 
 db = Database(db_url)
 db.create_tables()
+
+# ✅ إضافة معالج الأخطاء العام
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """معالجة الأخطاء غير المتوقعة"""
+    logger.error(f"Update {update} caused error: {context.error}")
 
 # حفظ الجلسة والمعلومات الحساسة في bot_data لضمان توفرها للميزات
 async def post_init(application: Application):
@@ -68,12 +75,15 @@ async def middleware_wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return True
 
 
-def main():
+async def main():  # ✅ تحويل main إلى async للتعامل مع await
     """الدالة الرئيسية لتشغيل البوت"""
     logger.info("🚀 Starting Smart Library Bot...")
 
     # إنشاء تطبيق التليجرام
     application = Application.builder().token(settings.BOT_TOKEN).build()
+
+    # ✅ تسجيل معالج الأخطاء
+    application.add_error_handler(error_handler)
 
     # ربط دوال البداية والنهاية
     application.post_init = post_init
@@ -95,14 +105,14 @@ def main():
 
     # ========== معالجات المحادثة (Conversation Handlers) ==========
 
-    # تم إضافة per_message=True لحل مشكلة تعطل أزرار البحث في السجلات
+    # ✅ تم تصحيح per_message إلى False لأن المحادثة تحتوي على MessageHandler وCommandHandler
     search_conv = ConversationHandler(
         entry_points=[CommandHandler("search", search_command)],
         states={
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, process_search)]
         },
         fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))],
-        per_message=True
+        per_message=False
     )
     application.add_handler(search_conv)
 
@@ -137,14 +147,14 @@ def main():
     )
     application.add_handler(batch_conv)
 
-    # إضافة التعليقات
+    # ✅ تم تصحيح per_message إلى False
     comment_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(add_comment_start, pattern="^add_comment_")],
         states={
             1: [MessageHandler(filters.TEXT & ~filters.COMMAND, save_comment)]
         },
         fallbacks=[CommandHandler("cancel", lambda u, c: u.message.reply_text("تم الإلغاء"))],
-        per_message=True
+        per_message=False
     )
     application.add_handler(comment_conv)
 
@@ -207,8 +217,10 @@ def main():
         )
     else:
         logger.info("🔄 Starting polling mode")
-        application.run_polling(allowed_updates=Update.ALL_TYPES)
+        # ✅ حذف أي webhook سابق لتفادي تعارض getUpdates
+        await application.bot.delete_webhook(drop_pending_updates=True)
+        await application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())  # ✅ تشغيل غير متزامن
