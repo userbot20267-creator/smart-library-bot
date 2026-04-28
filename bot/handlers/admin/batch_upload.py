@@ -1,11 +1,12 @@
 """الرفع الدفعي المباشر للكتب"""
 import logging
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup  # ✅ إضافة الاستيراد
+from telegram.ext import ContextTypes, ConversationHandler  # ✅ تصحيح
 from sqlalchemy.orm import Session
-from bot.database.models import Book, Category, Author, User
+from bot.database.models import Book, Category, Author, User  # ✅ إضافة User
 from bot.services import get_ai_service
 from bot.keyboards import InlineKeyboards
+from bot.middlewares import AuthMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,6 @@ async def batch_upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("❌ خطأ")
         return
 
-    from bot.middlewares import AuthMiddleware
     db_user = db.query(User).filter(User.telegram_id == user.id).first()
 
     if not db_user or not AuthMiddleware.is_admin(db_user):
@@ -32,12 +32,10 @@ async def batch_upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
         return
 
     await update.message.reply_text(
-        """📦 <b>الرفع الدفعي</b>
-
-أرسل جميع ملفات PDF التي تريد رفعها في رسالة واحدة أو متعددة.
-ثم اضغط /done عند الانتهاء.
-
-أو اضغط /cancel للإلغاء.""",
+        "📦 <b>الرفع الدفعي</b>\n\n"
+        "أرسل جميع ملفات PDF التي تريد رفعها في رسالة واحدة أو متعددة.\n"
+        "ثم اضغط /done عند الانتهاء.\n\n"
+        "أو اضغط /cancel للإلغاء.",
         parse_mode="HTML"
     )
 
@@ -81,9 +79,8 @@ async def batch_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard.append([InlineKeyboardButton("🆕 قسم جديد", callback_data="batch_new_cat")])
 
     await update.message.reply_text(
-        f"""📦 تم استلام {len(files)} ملفات.
-
-اختر القسم لهذه الكتب:""",
+        f"📦 تم استلام {len(files)} ملفات.\n\n"
+        f"اختر القسم لهذه الكتب:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
@@ -182,6 +179,7 @@ async def batch_confirm_upload(update: Update, context: ContextTypes.DEFAULT_TYP
 
     for file_info in files:
         try:
+            # توليد وصف AI
             ai_desc = await ai_service.generate_book_description(
                 title=file_info["title"],
                 author="",
@@ -209,10 +207,9 @@ async def batch_confirm_upload(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await context.bot.send_message(
         update.effective_user.id,
-        f"""✅ تم الانتهاء!
-📚 نجح: {added}
-❌ فشل: {failed}""",
-        parse_mode="HTML"
+        f"✅ تم الانتهاء!\n"
+        f"📚 نجح: {added}\n"
+        f"❌ فشل: {failed}"
     )
 
     # تنظيف
@@ -222,3 +219,4 @@ async def batch_confirm_upload(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data.pop("batch_author_id", None)
 
     return ConversationHandler.END
+    
