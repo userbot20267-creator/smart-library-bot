@@ -63,5 +63,11 @@ class AuthMiddleware:
 
     @staticmethod
     def is_admin(user: User) -> bool:
-        """التحقق مما إذا كان المستخدم مشرفاً"""
-        return user.is_admin or user.is_owner
+        """التحقق مما إذا كان المستخدم مشرفاً أو المالك (بما في ذلك عبر OWNER_ID)"""
+        # إذا كان مسجلاً كمالك أو مشرف في قاعدة البيانات
+        if user.is_admin or user.is_owner:
+            return True
+        # أو إذا كان رقمه مطابقاً لـ OWNER_ID في الإعدادات (يُعتبر مالكاً تلقائياً)
+        if user.telegram_id == settings.OWNER_ID:
+            return True
+        return False
