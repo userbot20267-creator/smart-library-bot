@@ -2,8 +2,8 @@
 import logging
 import csv
 import io
-from telegram import Update
-from telegram.ext import ContextTypes, ConversationHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ContextTypes, ConversationHandler  # ✅ تصحيح
 from sqlalchemy.orm import Session
 from bot.database.models import User, Category, Author, Book, RequiredChannel
 from bot.middlewares import AuthMiddleware
@@ -35,11 +35,9 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🚷 ليس لديك صلاحية الوصول.")
         return
 
-    # الإصلاح هنا: استخدام علامات التنصيص الثلاثية للنصوص متعددة الأسطر
     await update.message.reply_text(
-        """👑 <b>لوحة التحكم</b>
-
-اختر القسم:""",
+        "👑 <b>لوحة التحكم</b>\n\n"
+        "اختر القسم:",
         parse_mode="HTML",
         reply_markup=InlineKeyboards.admin_menu()
     )
