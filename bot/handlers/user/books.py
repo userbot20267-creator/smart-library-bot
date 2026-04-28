@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes
 from sqlalchemy.orm import Session
-from bot.database.models import Book, Category, Author, Favorite, Download, Rating, Comment
+from bot.database.models import Book, Category, Author, Favorite, Download, Rating, Comment, User
 from bot.keyboards import InlineKeyboards
 from bot.utils import format_file_size
 
