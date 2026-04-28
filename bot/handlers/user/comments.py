@@ -3,7 +3,7 @@ import logging
 from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 from sqlalchemy.orm import Session
-from bot.database.models import Book, Comment, CommentLike
+from bot.database.models import Book, Comment, CommentLike, User
 from bot.keyboards import InlineKeyboards
 
 logger = logging.getLogger(__name__)
@@ -133,4 +133,3 @@ async def like_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "💬 التعليقات:",
         reply_markup=InlineKeyboards.comments_list(comments, comment.book_id)
     )
-    
